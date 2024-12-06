@@ -3,7 +3,7 @@
 declare -A matrix
 declare -a a_positions
 
-check_M_location() {
+check_A_location() {
   local -i row column
   row="$1"
   column="$2"
@@ -11,7 +11,7 @@ check_M_location() {
   if [[ ( ("${matrix[$((row-1)),$((column-1))]}" == "M" && "${matrix[$((row+1)),$((column+1))]}" == "S") ||
           ("${matrix[$((row-1)),$((column-1))]}" == "S" && "${matrix[$((row+1)),$((column+1))]}" == "M") ) &&
         ( ("${matrix[$((row-1)),$((column+1))]}" == "M" && "${matrix[$((row+1)),$((column-1))]}" == "S") ||
-          ("${matrix[$((row-1)),$((column+1))]}" == "S" && "${matrix[$((row+1)),$((column-1))]}" == "M") )   ]]; then
+          ("${matrix[$((row-1)),$((column+1))]}" == "S" && "${matrix[$((row+1)),$((column-1))]}" == "M") ) ]]; then
     echo 1
   else
     echo 0
@@ -34,7 +34,7 @@ main() {
 
   for (( index = 0; index < ${#a_positions[@]}; index++ )); do
     IFS="," read -r row column <<< "${a_positions["$index"]}"
-    (( total += $(check_M_location "$row" "$column") ))
+    (( total += $(check_A_location "$row" "$column") ))
   done
 
   echo "$total"
