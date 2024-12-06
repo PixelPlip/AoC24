@@ -4,118 +4,19 @@ declare -A matrix
 declare -a x_positions
 declare sequence="XMAS"
 
-check_right() {
-  local -i row column i
+check_X_location() {
+  local -i row column row_increment column_increment i
   row="$1"
   column="$2"
+  row_increment="$3"
+  column_increment="$4"
   for (( i = 0; i < ${#sequence}; i++ )); do
     if [[ "${matrix[$row,$column]}" != "${sequence:i:1}" ]]; then
       echo 0
       return 0
     fi
-    (( column++ ))
-  done
-  echo 1
-}
-
-check_down_right() {
-  local -i row column i
-  row="$1"
-  column="$2"
-  for (( i = 0; i < ${#sequence}; i++ )); do
-    if [[ "${matrix[$row,$column]}" != "${sequence:i:1}" ]]; then
-      echo 0
-      return 0
-    fi
-    (( column++ ))
-    (( row++ ))
-  done
-  echo 1
-}
-
-check_down() {
-  local -i row column i
-  row="$1"
-  column="$2"
-  for (( i = 0; i < ${#sequence}; i++ )); do
-    if [[ "${matrix[$row,$column]}" != "${sequence:i:1}" ]]; then
-      echo 0
-      return 0
-    fi
-    (( row++ ))
-  done
-  echo 1
-}
-
-check_down_left() {
-  local -i row column i
-  row="$1"
-  column="$2"
-  for (( i = 0; i < ${#sequence}; i++ )); do
-    if [[ "${matrix[$row,$column]}" != "${sequence:i:1}" ]]; then
-      echo 0
-      return 0
-    fi
-    (( column-- ))
-    (( row++ ))
-  done
-  echo 1
-}
-
-check_left() {
-  local -i row column i
-  row="$1"
-  column="$2"
-  for (( i = 0; i < ${#sequence}; i++ )); do
-    if [[ "${matrix[$row,$column]}" != "${sequence:i:1}" ]]; then
-      echo 0
-      return 0
-    fi
-    (( column-- ))
-  done
-  echo 1
-}
-
-check_up_left() {
-  local -i row column i
-  row="$1"
-  column="$2"
-  for (( i = 0; i < ${#sequence}; i++ )); do
-    if [[ "${matrix[$row,$column]}" != "${sequence:i:1}" ]]; then
-      echo 0
-      return 0
-    fi
-    (( column-- ))
-    (( row-- ))
-  done
-  echo 1
-}
-
-check_up() {
-  local -i row column i
-  row="$1"
-  column="$2"
-  for (( i = 0; i < ${#sequence}; i++ )); do
-    if [[ "${matrix[$row,$column]}" != "${sequence:i:1}" ]]; then
-      echo 0
-      return 0
-    fi
-    (( row-- ))
-  done
-  echo 1
-}
-
-check_up_right() {
-  local -i row column i
-  row="$1"
-  column="$2"
-  for (( i = 0; i < ${#sequence}; i++ )); do
-    if [[ "${matrix[$row,$column]}" != "${sequence:i:1}" ]]; then
-      echo 0
-      return 0
-    fi
-    (( column++ ))
-    (( row-- ))
+    (( row += row_increment ))
+    (( column += column_increment ))
   done
   echo 1
 }
@@ -136,15 +37,14 @@ main() {
 
   for (( coord = 0; coord < ${#x_positions[@]}; coord++ )); do
     IFS="," read -r row column <<< "${x_positions["$coord"]}"
-    #printf "Row: %s, Column: %s, Letter: %s, Output:\n%s\n" "$row" "$column" "${matrix[$row,$column]}" "$(check_right $row $column)"
-    (( total += $(check_right "$row" "$column") ))
-    (( total += $(check_down_right "$row" "$column") ))
-    (( total += $(check_down "$row" "$column") ))
-    (( total += $(check_down_left "$row" "$column") ))
-    (( total += $(check_left "$row" "$column") ))
-    (( total += $(check_up_left "$row" "$column") ))
-    (( total += $(check_up "$row" "$column") ))
-    (( total += $(check_up_right "$row" "$column") ))
+    (( total += $(check_X_location "$row" "$column" -1  0) )) # Up
+    (( total += $(check_X_location "$row" "$column" -1  1) )) # Up right
+    (( total += $(check_X_location "$row" "$column"  0  1) )) # Right
+    (( total += $(check_X_location "$row" "$column"  1  1) )) # Down Right
+    (( total += $(check_X_location "$row" "$column"  1  0) )) # Down
+    (( total += $(check_X_location "$row" "$column"  1 -1) )) # Down left
+    (( total += $(check_X_location "$row" "$column"  0 -1) )) # Left
+    (( total += $(check_X_location "$row" "$column" -1 -1) )) # Up Left
   done
 
   echo "$total"
