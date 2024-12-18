@@ -59,9 +59,9 @@ tree_to_array() {
   fi
 
   ((qpos++))
-  read -r -a tree_array <<<"$(tree_to_array "${tree_array[$qpos]}" "${tree_array[*]}" "$qpos" "$tree_height")"
+  read -ra tree_array <<<"$(tree_to_array "${tree_array[$qpos]}" "${tree_array[*]}" "$qpos" "$tree_height")"
 
-  echo "${tree_array[@]}"
+  echo "${tree_array[*]}"
 }
 
 print_tree() {
@@ -205,7 +205,7 @@ add_node() {
 check_if_rule_exist() {
   local rule
   for rule in "${PRINT_RULES[@]}"; do
-    if [[ "$rule" == "$1" ]]
+    if [[ "$rule" == "$1" ]]; then
       return 0
     fi
   done
@@ -261,7 +261,8 @@ xby() {
 
 setup_page_tree() {
   local root left right
-  local -i index correct_rule_counter
+  local -i index
+  local -a rest_list
 
   debug "[setup_page_tree] Setting up page tree"
 
@@ -272,56 +273,42 @@ setup_page_tree() {
   debug "[setup_page_tree] Page tree after root node:"
   debug "$(print_tree)"
 
-  # Loop all rules until one full loop were all rules are already applied
-  while (( correct_rule_counter != ${#PRINT_RULES[@]} )); do
+  for rule in "${PRINT_RULES[@]}"; do
+    left=$(get_left "$rule")
+    right=$(get_right "$rule")
 
-    (( correct_rule_counter = 0 ))
+    debug ""
+    debug "[setup_page_tree] Looking at rule: $rule"
 
-    for rule in "${PRINT_RULES[@]}"; do
-      left=$(get_left "$rule")
-      right=$(get_right "$rule")
-
-      debug ""
-      debug "[setup_page_tree] Looking at rule: $rule"
-
-      if [[ -n "${PAGE_TREE[$left]}" && -n "${PAGE_TREE[$right]}" ]]; then
-        # Check if in correct order
-        if check_x_before_y "$left" "$right"; then
-          debug "                  Rule already in place"
-          (( correct_rule_counter++ ))
-        else
-          # Set y as right child of x and remove y from its previous parent
-          #debug "                  Both pages already exist but in the wrong order"
-          #remove_child_from_parent "$right"
-          #set_leaf_node "$left" "$right" "r"
-          debug "                   INCORRECT STATE!"
-        fi
-
-      elif [[ -n "${PAGE_TREE[$left]}" ]]; then
-        # If right child is unset - set it; else nothing
-        if [[ $(get_right "${PAGE_TREE[$left]}") == "0" ]]; then
-          debug "                  Setting page $right to the right of node $left."
-          set_leaf_node "$left" "$right" "r"
-        else
-          #debug "                  Node $left found but already has a right child."
-          
-        fi
-
-      elif [[ -n "${PAGE_TREE[$right]}" ]]; then
-        # If left child is unset - set it; else nothing
-        if [[ $(get_left "${PAGE_TREE[$right]}") == "0" ]]; then
-          debug "                  Setting page $left to the left of node $right."
-          set_leaf_node "$right" "$left" "l"
-        else
-          debug "                  Node $right found but already has a left child."
-        fi
+    if [[ -n "${PAGE_TREE[$left]}" ]]; then
+      # If right child is unset - set it; else nothing
+      if [[ $(get_right "${PAGE_TREE[$left]}") == "0" ]]; then
+        debug "                  Setting page $right to the right of node $left."
+        set_leaf_node "$left" "$right" "r"
       else
-         debug "                  None of the pages exist in the tree, ignoring rule for now."
+        #debug "                  Node $left found but already has a right child."
+        debug "                  Node $left found, adding node $right somewere to the right of it."
+        add_node "$right" "$left" "r"
       fi
-    done
-    debug "---------------------- RULE ITERATION COMPLETE ----------------------"
-    return 0
+
+    elif [[ -n "${PAGE_TREE[$right]}" ]]; then
+      # If left child is unset - set it; else nothing
+      if [[ $(get_left "${PAGE_TREE[$right]}") == "0" ]]; then
+        debug "                  Setting page $left to the left of node $right."
+        set_leaf_node "$right" "$left" "l"
+      else
+        #debug "                  Node $right found but already has a left child."
+        debug "                  Node $left found, adding node $right somewere to the right of it."
+        add_node "$left" "$right" "l"
+      fi
+
+    else
+       debug "                  None of the pages exist in the tree, adding rule to rest list."
+       rest_list+=("$rule")
+    fi
   done
+
+  debug "[setup_page_tree] Rules in rest list: ${rest_list[*]}"
 }
 
 read_print_rules() {
@@ -337,8 +324,12 @@ main() {
 
   read_print_rules "$1"
   setup_page_tree
-  debug "[main] Page tree: ${PAGE_TREE[*]}"
-  print_tree
+  #debug "[main] Page tree nodes: ${!PAGE_TREE[*]}"
+  #print_tree
+  echo "[main] Page tree structure:"
+  for key in "${!PAGE_TREE[@]}"; do
+    printf "%s->%s " "$key" "${PAGE_TREE[$key]}"
+  done
 }
 
 main "$@"
